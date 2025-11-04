@@ -1,7 +1,7 @@
 {
 	"name": "player-web",
   "bin": {
-    "vidio": "./index.js"
+    "vidio": "./src/index.js"
   },
 	"scripts": {
 		"dev": "nodemon"
