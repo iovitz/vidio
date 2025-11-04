@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vidio</title>
+    <link href="css/daisy5.css" rel="stylesheet" type="text/css" />
+    <link href="css/daisy5-themes.css" rel="stylesheet" type="text/css" />
+    <link href="css/plyr.css" rel="stylesheet" type="text/css" />
+    <link href="css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div x-data="vidio">
+      <div class="player-w max-w-[450px] mx-auto">
+        <h1 x-text="name"></h1>
+        <video id="player" playsinline controls>
+          <source />
+          <!-- Captions are optional -->
+          <track kind="captions" label="English captions" src="/path/to/captions.vtt" srclang="en" default />
+        </video>
+        <ul class="list bg-base-100 rounded-box shadow-md">
+          <li class="p-4 pb-2 text-xs opacity-60 tracking-wide">Video list</li>
+
+          <template x-for="file in fileList">
+            <li class="list-row" x-data="{ isVideo: file.type === 'video' }" @click="handleClick(file)">
+              <div class="flex items-center">
+                <svg
+                  x-show="!isVideo"
+                  width="24px"
+                  height="24px"
+                  stroke-width="1.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  color="#000000"
+                >
+                  <path
+                    d="M2 11V4.6C2 4.26863 2.26863 4 2.6 4H8.77805C8.92127 4 9.05977 4.05124 9.16852 4.14445L12.3315 6.85555C12.4402 6.94876 12.5787 7 12.722 7H21.4C21.7314 7 22 7.26863 22 7.6V11M2 11V19.4C2 19.7314 2.26863 20 2.6 20H21.4C21.7314 20 22 19.7314 22 19.4V11M2 11H22"
+                    stroke="#000000"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></path>
+                </svg>
+                <svg
+                  x-show="isVideo"
+                  width="24px"
+                  height="24px"
+                  stroke-width="1.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  color="#000000"
+                >
+                  <path
+                    d="M21 3.6V20.4C21 20.7314 20.7314 21 20.4 21H3.6C3.26863 21 3 20.7314 3 20.4V3.6C3 3.26863 3.26863 3 3.6 3H20.4C20.7314 3 21 3.26863 21 3.6Z"
+                    stroke="#000000"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></path>
+                  <path
+                    d="M9.89768 8.51296C9.49769 8.28439 9 8.57321 9 9.03391V14.9661C9 15.4268 9.49769 15.7156 9.89768 15.487L15.0883 12.5209C15.4914 12.2906 15.4914 11.7094 15.0883 11.4791L9.89768 8.51296Z"
+                    stroke="#000000"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <div x-text="file.name"></div>
+                <div class="text-xs uppercase font-semibold opacity-60" x-text="file.path"></div>
+              </div>
+            </li>
+          </template>
+        </ul>
+      </div>
+    </div>
+
+    <script src="js/tailwind.js"></script>
+    <script src="js/plyr.js"></script>
+    <script src="js/alpine.js" defer></script>
+    <script>
+      document.addEventListener('alpine:init', () => {
+        const player = new Plyr('#player')
+
+        Alpine.data('vidio', () => ({
+          open: false,
+          currentDir: '/',
+          fileList: [],
+
+          toggle() {
+            this.open = !this.open
+          },
+          async init() {
+            await this.updateFileList()
+            for (const file of this.fileList) {
+              if (file.type === 'video') {
+                this.play(file)
+              }
+            }
+          },
+          handleClick(file) {
+            if (file.type === 'video') {
+              this.play(file)
+            } else if (file.type === 'folder') {
+              this.updateFileList(file.name)
+            } else if (file.type === 'back') {
+              this.updateFileList(void 0, 'true')
+            }
+          },
+          play(videoInfo) {
+            player.source = {
+              type: 'video',
+              sources: `/videos${videoInfo.path}`,
+            }
+            this.currentVideo = videoInfo
+            player.play()
+          },
+
+          async updateFileList(inDir = '', back = '') {
+            let { files, dir } = await fetch(`/api/videos?dir=${this.currentDir}&in_dir=${encodeURIComponent(inDir)}&back=${back}`).then(r =>
+              r.json()
+            )
+            const fileList = []
+            this.currentDir = dir
+            if (!['/', '\\'].includes(dir)) {
+              fileList.push({
+                type: 'back',
+                name: '..',
+              })
+            }
+            files = files.sort((a, b) => a.name - b.name)
+            files.forEach(item => item.type === 'folder' && fileList.push(item))
+            files.forEach(item => item.type === 'video' && fileList.push(item))
+            this.fileList = fileList
+          },
+        }))
+      })
+    </script>
+  </body>
+</html>
