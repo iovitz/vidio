@@ -1,9 +1,10 @@
 const path = require('path')
 const fastify = require('fastify')({ logger: true })
 const fastifyStatic = require('@fastify/static')
-const { getAllVideos } = require('./utils')
+const { getFileListByDirPath: getAllVideos } = require('./utils')
 
 const currentDir = process.cwd()
+
 fastify.register(fastifyStatic, {
   root: path.join(currentDir, '.'),
   prefix: '/videos/',
@@ -21,9 +22,11 @@ fastify.get('/api/videos', async function handler(request) {
   const back = request.query.back
 
   if (in_dir) {
+    // Enter the folder
     dir = path.join(dir, in_dir)
   } else if (back) {
-    dir = path.resolve(dir, '..')
+    // Return to the parent directory
+    dir = path.join(dir, '..')
   }
 
   const files = await getAllVideos(dir)
@@ -34,7 +37,7 @@ fastify.get('/api/videos', async function handler(request) {
   }
 })
 
-exports.start = async () => {
+module.exports = async () => {
   try {
     await fastify.listen({ port: 8686 })
     console.log('Server running on http://localhost:8686')
